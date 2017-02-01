@@ -2,14 +2,14 @@
 require File.join(File.dirname(__FILE__), 'lib', 'fakes3', 'version')
 
 Gem::Specification.new do |s|
-  s.name        = "fakes3"
+  s.name        = "plntr-fakes3"
   s.version     = FakeS3::VERSION
   s.platform    = Gem::Platform::RUBY
   s.authors     = ["Curtis Spencer"]
   s.email       = ["fakes3@supportedsource.org"]
-  s.homepage    = "https://github.com/jubos/fake-s3"
-  s.summary     = %q{Fake S3 is a server that simulates Amazon S3 commands so you can test your S3 functionality in your projects}
-  s.description = %q{Use Fake S3 to test basic Amazon S3 functionality without actually connecting to AWS}
+  s.homepage    = "https://github.com/PlanitarInc/fake-s3"
+  s.summary     = %q{Fork of https://github.com/jubos/fake-s3. Fake S3 is a server that simulates Amazon S3 commands so you can test your S3 functionality in your projects}
+  s.description = %q{Fork of https://github.com/jubos/fake-s3. Use Fake S3 to test basic Amazon S3 functionality without actually connecting to AWS}
   s.license     = "Supported-Source"
   s.post_install_message = "Fake S3: if you don't already have a license for Fake S3, you can get one at https://supportedsource.org/projects/fake-s3"
 
