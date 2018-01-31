@@ -327,9 +327,25 @@ module FakeS3
     def do_OPTIONS(request, response)
       super
 
+      allowedHeaders = [
+	'Accept',
+	'Content-Type',
+	'Authorization',
+	'Content-Length',
+	'ETag',
+	'Content-MD5',
+        # Custom headers
+	'X-CSRF-Token',
+	'X-AMZ-Content-SHA256',
+	'X-AMZ-Date',
+        # Planitar AMZ User Metadata headers
+	'x-amz-meta-filename',
+	'x-amz-meta-params',
+      ];
+	    
       response['Access-Control-Allow-Origin']   = '*'
       response['Access-Control-Allow-Methods']  = 'PUT, POST, HEAD, GET, OPTIONS'
-      response['Access-Control-Allow-Headers']  = 'Accept, Content-Type, Authorization, Content-Length, ETag, X-CSRF-Token, Content-MD5, X-AMZ-Content-SHA256, X-AMZ-Date'
+      response['Access-Control-Allow-Headers']  = allowedHeaders.join(', ')
       response['Access-Control-Expose-Headers'] = 'ETag'
     end
 
