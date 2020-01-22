@@ -105,56 +105,62 @@ module FakeS3
     end
 
     def copy_object(src_bucket_name, src_name, dst_bucket_name, dst_name, request)
-      src_root = File.join(@root,src_bucket_name,src_name,FAKE_S3_METADATA_DIR)
-      src_metadata_filename = File.join(src_root, "metadata")
-      src_metadata = YAML.load(File.open(src_metadata_filename, 'rb').read)
-      src_content_filename = File.join(src_root, "content")
+      begin
+        src_root = File.join(@root,src_bucket_name,src_name,FAKE_S3_METADATA_DIR)
+        src_metadata_filename = File.join(src_root, "metadata")
+        src_metadata = File.open(src_metadata_filename) { |file| YAML::load(file) }
+        src_content_filename = File.join(src_root, "content")
 
-      dst_filename= File.join(@root,dst_bucket_name,dst_name)
-      FileUtils.mkdir_p(dst_filename)
+        dst_filename= File.join(@root,dst_bucket_name,dst_name)
+        FileUtils.mkdir_p(dst_filename)
 
-      metadata_dir = File.join(dst_filename,FAKE_S3_METADATA_DIR)
-      FileUtils.mkdir_p(metadata_dir)
+        metadata_dir = File.join(dst_filename,FAKE_S3_METADATA_DIR)
+        FileUtils.mkdir_p(metadata_dir)
 
-      content = File.join(metadata_dir, "content")
-      metadata = File.join(metadata_dir, "metadata")
+        content = File.join(metadata_dir, "content")
+        metadata = File.join(metadata_dir, "metadata")
 
-      if src_bucket_name != dst_bucket_name || src_name != dst_name
-        File.open(content, 'wb') do |f|
-          File.open(src_content_filename, 'rb') do |input|
-            f << input.read
+        if src_bucket_name != dst_bucket_name || src_name != dst_name
+          File.open(content, 'wb') do |f|
+            File.open(src_content_filename, 'rb') do |input|
+              f << input.read
+            end
+          end
+
+          File.open(metadata,'w') do |f|
+            File.open(src_metadata_filename,'r') do |input|
+              f << input.read
+            end
           end
         end
 
-        File.open(metadata,'w') do |f|
-          File.open(src_metadata_filename,'r') do |input|
-            f << input.read
+        metadata_directive = request.header["x-amz-metadata-directive"].first
+        if metadata_directive == "REPLACE"
+          metadata_struct = create_metadata(content,request)
+          File.open(metadata,'w') do |f|
+            f << YAML::dump(metadata_struct)
           end
         end
+
+        src_bucket = get_bucket(src_bucket_name) || create_bucket(src_bucket_name)
+        dst_bucket = get_bucket(dst_bucket_name) || create_bucket(dst_bucket_name)
+
+        obj = S3Object.new
+        obj.name = dst_name
+        obj.md5 = src_metadata[:md5]
+        obj.content_type = src_metadata[:content_type]
+        obj.content_encoding = src_metadata[:content_encoding]
+        obj.size = src_metadata[:size]
+        obj.modified_date = src_metadata[:modified_date]
+
+        src_bucket.find(src_name)
+        dst_bucket.add(obj)
+        return obj
+      rescue
+        puts $!
+        $!.backtrace.each { |line| puts line }
+        return nil
       end
-
-      metadata_directive = request.header["x-amz-metadata-directive"].first
-      if metadata_directive == "REPLACE"
-        metadata_struct = create_metadata(content,request)
-        File.open(metadata,'w') do |f|
-          f << YAML::dump(metadata_struct)
-        end
-      end
-
-      src_bucket = get_bucket(src_bucket_name) || create_bucket(src_bucket_name)
-      dst_bucket = get_bucket(dst_bucket_name) || create_bucket(dst_bucket_name)
-
-      obj = S3Object.new
-      obj.name = dst_name
-      obj.md5 = src_metadata[:md5]
-      obj.content_type = src_metadata[:content_type]
-      obj.content_encoding = src_metadata[:content_encoding]
-      obj.size = src_metadata[:size]
-      obj.modified_date = src_metadata[:modified_date]
-
-      src_bucket.find(src_name)
-      dst_bucket.add(obj)
-      return obj
     end
 
     def store_object(bucket, object_name, request)
