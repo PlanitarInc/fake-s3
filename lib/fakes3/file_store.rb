@@ -252,7 +252,7 @@ module FakeS3
       object
     end
 
-    def delete_object(bucket,object_name,request)
+    def delete_object(bucket,object_name)
       begin
         filename = File.join(@root,bucket.name,object_name)
         FileUtils.rm_rf(filename)
