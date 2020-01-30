@@ -218,5 +218,37 @@ module FakeS3
       }
       output
     end
+
+    # <DeleteResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
+    #   <Deleted>
+    #     <Key>sample1.txt</Key>
+    #   </Deleted>
+    #   <Error>
+    #     <Key>sample2.txt</Key>
+    #     <Code>AccessDenied</Code>
+    #     <Message>Access Denied</Message>
+    #   </Error>
+    # </DeleteResult>
+    def self.delete_objects_result(result_objects)
+      output = ""
+      xml = Builder::XmlMarkup.new(:target => output)
+      xml.instruct! :xml, :version=>"1.0", :encoding=>"UTF-8"
+      xml.DeleteResult(:xmlns => "http://s3.amazonaws.com/doc/2006-03-01/") { |result|
+        result_objects.each do |res|
+          if not res[:code].nil?
+            result.Error { |error|
+              error.Key(res[:key])
+              error.Code(res[:code])
+              error.Message(res[:message])
+            }
+          else
+            result.Deleted { |deleted|
+              deleted.Key(res[:key])
+            }
+          end
+        end
+      }
+      output
+    end
   end
 end

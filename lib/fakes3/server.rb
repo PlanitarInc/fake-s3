@@ -25,6 +25,7 @@ module FakeS3
     SET_ACL = "SET_ACL"
     MOVE = "MOVE"
     DELETE_OBJECT = "DELETE_OBJECT"
+    DELETE_OBJECTS = "DELETE_OBJECTS"
     DELETE_BUCKET = "DELETE_BUCKET"
 
     attr_accessor :bucket, :object, :type, :src_bucket,
@@ -245,6 +246,10 @@ module FakeS3
     end
 
     def do_POST(request,response)
+      if request.request_line =~ /\?delete\b/
+        return do_DELETE(request, response)
+      end
+
       s_req = normalize_request(request)
       key   = request.query['key']
       query = CGI::parse(request.request_uri.query || "")
@@ -321,13 +326,32 @@ module FakeS3
       case s_req.type
       when Request::DELETE_OBJECT
         bucket_obj = @store.get_bucket(s_req.bucket)
-        @store.delete_object(bucket_obj,s_req.object,s_req.webrick_request)
+        @store.delete_object(bucket_obj,s_req.object)
+        response.status = 204
+        response.body = ""
       when Request::DELETE_BUCKET
         @store.delete_bucket(s_req.bucket)
+        response.status = 204
+        response.body = ""
+      when Request::DELETE_OBJECTS
+        objects = parse_delete_objects s_req.webrick_request
+        bucket_obj = @store.get_bucket(s_req.bucket)
+        results = objects.collect do |obj|
+          if not obj[:version_id].nil?
+            {
+              key: obj[:key],
+              code: 'XXX_Unimplmented_XXX',
+              message: 'Deletion of object verions is not implemented',
+            }
+          else
+            @store.delete_object(bucket_obj, obj[:key])
+            { key: obj[:key] }
+          end
+        end
+        response.status = 200
+        response.body = XmlAdapter.delete_objects_result(results)
       end
 
-      response.status = 204
-      response.body = ""
     end
 
     def do_OPTIONS(request, response)
@@ -472,6 +496,10 @@ module FakeS3
       else
         s_req.object = path[1..-1]
       end
+
+      if webrick_req.request_line =~ /\?delete\b/
+        s_req.type = Request::DELETE_OBJECTS
+      end
     end
 
     # This method takes a webrick request and generates a normalized FakeS3 request
@@ -519,6 +547,21 @@ module FakeS3
         {
           number: xml[/<PartNumber>(\d+)<\/PartNumber>/, 1].to_i,
           etag:   FakeS3::Util.strip_before_and_after(xml[/\<ETag\>(.+)<\/ETag>/, 1], '"')
+        }
+      end
+    end
+
+    def parse_delete_objects(request)
+      objects_xml   = ""
+      request.body { |chunk| objects_xml << chunk }
+
+      # TODO: improve parsing xml
+      objects_xml = objects_xml.scan(/<Object>.*?<\/Object>/)
+
+      objects_xml.collect do |obj| 
+        {
+          key: obj[/<Key>(.+)<\/Key>/, 1],
+          version_id: obj[/<VersionId>(.+)<\/VersionId>/, 1]
         }
       end
     end
