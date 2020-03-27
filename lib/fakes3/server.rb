@@ -368,6 +368,9 @@ module FakeS3
 	'X-CSRF-Token',
 	'X-AMZ-Content-SHA256',
 	'X-AMZ-Date',
+	'X-Amz-Acl',
+        'X-Amz-Security-Token',
+        'X-Amz-User-Agent',
         # Planitar AMZ User Metadata headers
 	'x-amz-meta-filename',
 	'x-amz-meta-params',
