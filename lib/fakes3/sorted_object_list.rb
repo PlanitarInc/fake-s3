@@ -56,10 +56,10 @@ module FakeS3
     # :prefix    : a string to filter the results by
     # :delimiter : not supported yet
     def list(options)
-      marker = options[:marker].length > 0 ? options[:marker] : nil
-      prefix = options[:prefix].length > 0 ? options[:prefix] : nil
+      marker = !options[:marker].nil? && !options[:marker].empty? ? options[:marker] : nil
+      prefix = !options[:prefix].nil? && !options[:prefix].empty? ? options[:prefix] : nil
       max_keys = options[:max_keys] || 1000
-      delimiter = options[:delimiter].length > 0 ? options[:delimiter] : nil
+      delimiter = !options[:delimiter].nil? && !options[:delimiter].empty? ? options[:delimiter] : nil
 
       ms = S3MatchSet.new
 
