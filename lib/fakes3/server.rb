@@ -549,7 +549,7 @@ module FakeS3
       parts_xml.collect do |xml|
         {
           number: xml[/<PartNumber>(\d+)<\/PartNumber>/, 1].to_i,
-          etag:   FakeS3::Util.strip_before_and_after(xml[/\<ETag\>(.+)<\/ETag>/, 1], "&quot;", "&#34;", '"')
+          etag:   FakeS3::Util.strip_etag(xml[/\<ETag\>(.+)<\/ETag>/, 1]),
         }
       end
     end
